@@ -1,0 +1,98 @@
+# Visual Studio / VB.NET .gitignore
+
+## Build results
+
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+
+## Visual Studio cache/options
+
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+## Rider / JetBrains (por si acaso)
+
+.idea/
+*.sln.iml
+
+## Debug/Release folders
+
+Debug/
+Release/
+x64/
+x86/
+
+## .NET Core / .NET
+
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+## NuGet
+
+*.nupkg
+*.snupkg
+packages/
+!packages/build/
+*.nuget.props
+*.nuget.targets
+
+## Logs
+
+*.log
+
+## OS generated files
+
+.DS_Store
+Thumbs.db
+
+## Publish output
+
+publish/
+*.publishsettings
+
+## IIS Express
+
+.vs/config/applicationhost.config
+
+## Resharper
+
+_ReSharper*/
+*.DotSettings.user
+
+## Test results
+
+TestResults/
+*.trx
+
+## Backup & temporary files
+
+*.bak
+*.tmp
+*.temp
+*.cache
+
+## SQL Server files
+
+*.mdf
+*.ldf
+
+## Visual Studio Code (si alguien lo usa)
+
+.vscode/
+
+## Windows Installer
+
+*.msi
+*.msm
+*.msp
+
+## Others
+
+*.pdb
+*.exe
+*.dll

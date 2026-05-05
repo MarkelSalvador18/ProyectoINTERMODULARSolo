@@ -1,5 +1,6 @@
 ﻿Public Class RA
 
+    Public Tareas As New List(Of Tarea)
     Public Property Numero As Integer
     Public Property CodigoModulo As String
     Public Property CodigoCiclo As String

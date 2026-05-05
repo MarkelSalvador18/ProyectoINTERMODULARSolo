@@ -3,7 +3,7 @@
 Public Class Alumno
     Implements IEquatable(Of Alumno)
 
-
+    Public Jornadas As New List(Of Jornada)
     Public Property Dni As String
     Public Property Email As String
     Public Property Telefono As String

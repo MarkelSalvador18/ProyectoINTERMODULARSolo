@@ -2,6 +2,8 @@
 
 Public Class Jornada
 
+    Public Tareas As New List(Of Tarea)
+
     Public Property Fecha As Date
     Public Property DniAlumno As String
     Public Property HorasJornada As Integer

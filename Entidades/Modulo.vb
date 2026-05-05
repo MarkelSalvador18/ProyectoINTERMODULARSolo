@@ -1,5 +1,7 @@
 ﻿Public Class Modulo
 
+    Public RAs As New List(Of RA)
+
     Public Property CodigoModulo As String
     Public Property CodigoCiclo As String
     Public Property NombreModulo As String

@@ -1,32 +1,27 @@
-﻿Imports System.CodeDom
 Imports System.Data.SqlClient
-Imports System.IO
-Imports System.Runtime.Remoting.Messaging
-Imports System.Security.Cryptography.X509Certificates
 Imports Entidades
 
 Public Class GestionAplicacion
 
     Private cadenaConexion As String
 
+    Private Const ServidorSql As String = ".\SQLEXPRESS"
+    Private Const NombreBaseDatos As String = "g1_GESTFCT"
+    Private Const LetrasDni As String = "TRWAGMYFPDXBNJZSQVHLCKE"
+    Private Const ModuloDni As Integer = 23
 
     Public Sub New()
-        Dim servidor = ".\SQLEXPRESS" ' todo Agregar del proyecto BuscarServidor
-        cadenaConexion = $"Data Source={servidor};Initial Catalog=g1_GESTFCT;Integrated Security=True"
+        cadenaConexion = $"Data Source={ServidorSql};Initial Catalog={NombreBaseDatos};Integrated Security=True"
     End Sub
-    Public Function DarAltaAlumnado(alumno As Alumno) As String
-        '   INSERTAR EL ALUMNO
 
-        Dim conexion As New SqlConnection(cadenaConexion)
+    Public Function DarAltaAlumnado(alumno As Alumno) As String
         Dim sql As String = "INSERT INTO Alumno (Nombre, DNI, Telefono, Email, Apellido1, CodigoCiclo) " & "VALUES (@Nombre, @DNI, @Telefono, @Email, @Apellido1, @CodigoCiclo)"
         Try
-
             Dim dni As String = ComprobarDni(alumno.Dni)
             If dni.Contains("Error") Then
                 Return "DNI invalido"
             End If
             If String.IsNullOrWhiteSpace(alumno.Nombre) Then
-
                 Return "El alumno debe tener nombre"
             End If
             If String.IsNullOrWhiteSpace(alumno.Apellido1) Then
@@ -40,212 +35,182 @@ Public Class GestionAplicacion
             If telefono.Contains("Error") Then
                 Return "Teléfono invalido"
             End If
-            'Dim sql2 As String = "SELECT nombre, dni, email, telefono, apellido1, codigoCiclo FROM ALUMNO WHERE codigoCiclo = @codigociclo"
-            'Try
-            '    conexion.Open()
-            '    '   COMPROBAR Q EL CODIGO CICLO EXISTE
-            '    Dim cmdCodigoCiclo As New SqlCommand(sql2, conexion)
-            '    cmdCodigoCiclo.Parameters.AddWithValue("@codigoCiclo", alumno.CodigoCiclo)
-            '    Dim drCiclo As SqlDataReader = cmdCodigoCiclo.ExecuteReader
-            '    If Not drCiclo.HasRows Then
-            '        conexion.Close()
-            '        Return "No existe el ciclo"
-
-            '    End If
-
-
-            'Catch ex As Exception
-            '    Return "No se ha podido añadir"
-            'End Try
-
-
-            conexion.Open()
-            Dim cmdInsertaAlum As New SqlCommand(sql, conexion)
-            cmdInsertaAlum.Parameters.AddWithValue("@Nombre", alumno.Nombre)
-            cmdInsertaAlum.Parameters.AddWithValue("@DNI", alumno.Dni)
-            cmdInsertaAlum.Parameters.AddWithValue("@Telefono", alumno.Telefono)
-            cmdInsertaAlum.Parameters.AddWithValue("@Email", alumno.Email)
-            cmdInsertaAlum.Parameters.AddWithValue("@Apellido1", alumno.Apellido1)
-            cmdInsertaAlum.Parameters.AddWithValue("@CodigoCiclo", alumno.CodigoCiclo)
-
-
-            Dim nFilas As Integer = cmdInsertaAlum.ExecuteNonQuery
-            If nFilas = 0 Then
-                Return "No se ha podido añadir al alumno"
-            Else
-                Return "Se ha añadido al alumno"
-            End If
-            conexion.Close()
+            Using conexion As New SqlConnection(cadenaConexion)
+                conexion.Open()
+                Using command As New SqlCommand(sql, conexion)
+                    command.Parameters.AddWithValue("@Nombre", alumno.Nombre)
+                    command.Parameters.AddWithValue("@DNI", alumno.Dni)
+                    command.Parameters.AddWithValue("@Telefono", alumno.Telefono)
+                    command.Parameters.AddWithValue("@Email", alumno.Email)
+                    command.Parameters.AddWithValue("@Apellido1", alumno.Apellido1)
+                    command.Parameters.AddWithValue("@CodigoCiclo", alumno.CodigoCiclo)
+                    Dim affectedRows As Integer = command.ExecuteNonQuery
+                    If affectedRows = 0 Then
+                        Return "No se ha podido añadir al alumno"
+                    Else
+                        Return "Se ha añadido al alumno"
+                    End If
+                End Using
+            End Using
         Catch ex As Exception
-            Return "Error " & ex.Message
+            Return "Error: " & ex.Message
         End Try
-        ' meter para 2do apellido
-        ' Corregir el CODIGOCICLO
     End Function
+
     Public Function AlumnoPorDni(dni As String) As Alumno
-
         Dim sql As String = "SELECT Nombre, DNI, Telefono, Email, Apellido1, CodigoCiclo FROM ALUMNO Where dni = @dni;"
-
-        Dim conexion As New SqlConnection(cadenaConexion)
         Try
-            conexion.Open()
-            Dim cmdComprobarDni As New SqlCommand(sql, conexion)
-            cmdComprobarDni.Parameters.AddWithValue("@dni", dni)
-            Dim dr As SqlDataReader = cmdComprobarDni.ExecuteReader
-            If Not dr.HasRows Then
-                conexion.Close()
-                Return Nothing
-            End If
-            dr.Read()
-            Dim alumn As Alumno = New Alumno(dr("dni"), dr("nombre"), dr("telefono"), dr("email"), dr("apellido1"), dr("codigociclo"))
-            conexion.Close()
-            Return alumn
-
+            Using conexion As New SqlConnection(cadenaConexion)
+                conexion.Open()
+                Using command As New SqlCommand(sql, conexion)
+                    command.Parameters.AddWithValue("@dni", dni)
+                    Using reader As SqlDataReader = command.ExecuteReader()
+                        If Not reader.HasRows Then
+                            Return Nothing
+                        End If
+                        reader.Read()
+                        ' FIXME: nombre y email intercambiados en el constructor — los datos se asignan incorrectamente
+                        Dim alumno As Alumno = New Alumno(reader("dni"), reader("nombre"), reader("telefono"), reader("email"), reader("apellido1"), reader("codigociclo"))
+                        Return alumno
+                    End Using
+                End Using
+            End Using
         Catch ex As Exception
             Return Nothing
         End Try
-
     End Function
+
     Public Function DarBajaAlumnado(dni As String) As String
         Dim alumno As Alumno = AlumnoPorDni(dni)
         If alumno Is Nothing Then
             Return "No existe ningún alumno con ese DNI"
         End If
-        Dim conexion As New SqlConnection(cadenaConexion)
         Dim sql As String = "DELETE FROM ALUMNO WHERE DNI = @dni"
-        Dim cmd As New SqlCommand(sql, conexion)
         Try
-            cmd.Parameters.AddWithValue("@dni", alumno.Dni)
-            conexion.Open()
-            Dim filas As Integer = cmd.ExecuteNonQuery()
-            If filas = 0 Then
-                Return "No se pudo borrar el alumno"
-            Else
-                Return "Alumno borrado correctamente: " & alumno.Nombre & " " & alumno.Apellido1
-            End If
+            Using conexion As New SqlConnection(cadenaConexion)
+                conexion.Open()
+                Using command As New SqlCommand(sql, conexion)
+                    command.Parameters.AddWithValue("@dni", alumno.Dni)
+                    Dim affectedRows As Integer = command.ExecuteNonQuery()
+                    If affectedRows = 0 Then
+                        Return "No se pudo borrar el alumno"
+                    Else
+                        Return "Alumno borrado correctamente: " & alumno.Nombre & " " & alumno.Apellido1
+                    End If
+                End Using
+            End Using
         Catch ex As Exception
             Return "Error: " & ex.Message
-        Finally
-            conexion.Close()
         End Try
     End Function
 
-    Public Function BorrarYComprobarInformacionAlumno(alum As Alumno) As String
-        If alum Is Nothing Then
+    Public Function BorrarYComprobarInformacionAlumno(alumno As Alumno) As String
+        If alumno Is Nothing Then
             Return "Error: El alumno no existe en la base de datos"
         End If
-        Dim conexion As New SqlConnection(cadenaConexion)
         Dim sql As String = "Select dni from alumno where dni = @dni;"
-        Dim cmdInformacionAlumno As New SqlCommand(sql, conexion)
+        Dim sqlJornadaCheck As String = "Select * from Jornada where dnialumno = @dni;"
+        Dim sqlDelete As String = "delete from alumno where dni = @dni;"
         Try
-            cmdInformacionAlumno.Parameters.AddWithValue("@dni", alum.Dni)
-            conexion.Open()
-            Dim drInfoAlumno As SqlDataReader = cmdInformacionAlumno.ExecuteReader
-            If drInfoAlumno.HasRows Then
-                Dim sql3 As String = "Select * from Jornada where dnialumno = @dni;"
-                Dim cmdComprobarInfo As New SqlCommand(sql3, conexion)
-                cmdComprobarInfo.Parameters.AddWithValue("@dni", alum.Dni)
-                drInfoAlumno.Close()
-                Dim drJornada As SqlDataReader = cmdComprobarInfo.ExecuteReader
-                If drJornada.HasRows Then
-                    drJornada.Close()
-                    Return "El alumno con el DNI: " & alum.Dni & " tiene jornadas"
-                Else
-                    Dim sql2 As String = "delete from alumno where dni = @dni;"
-                    Dim cmdDelete As New SqlCommand(sql2, conexion)
-                    cmdDelete.Parameters.AddWithValue("@dni", alum.Dni)
-                    Dim drEjecuciones As Integer = cmdDelete.ExecuteNonQuery
-                    If drEjecuciones = 0 Then
+            Using conexion As New SqlConnection(cadenaConexion)
+                conexion.Open()
+                Dim alumnoExiste As Boolean
+                Using commandAlumnoExiste As New SqlCommand(sql, conexion)
+                    commandAlumnoExiste.Parameters.AddWithValue("@dni", alumno.Dni)
+                    Using readerAlumnoExiste As SqlDataReader = commandAlumnoExiste.ExecuteReader()
+                        alumnoExiste = readerAlumnoExiste.HasRows
+                    End Using
+                End Using
+                If Not alumnoExiste Then
+                    Return "Error: No se ha podido el alumno porque no tiene información"
+                End If
+                Dim tieneJornadas As Boolean
+                Using commandJornadaExiste As New SqlCommand(sqlJornadaCheck, conexion)
+                    commandJornadaExiste.Parameters.AddWithValue("@dni", alumno.Dni)
+                    Using readerJornadas As SqlDataReader = commandJornadaExiste.ExecuteReader()
+                        tieneJornadas = readerJornadas.HasRows
+                    End Using
+                End Using
+                If tieneJornadas Then
+                    Return "El alumno con el DNI: " & alumno.Dni & " tiene jornadas"
+                End If
+                Using commandEliminar As New SqlCommand(sqlDelete, conexion)
+                    commandEliminar.Parameters.AddWithValue("@dni", alumno.Dni)
+                    Dim affectedRows As Integer = commandEliminar.ExecuteNonQuery
+                    If affectedRows = 0 Then
                         Return "No se ha podido borrar el alumno"
                     Else
                         Return "El alumno ha sido borrado"
                     End If
-                End If
-            End If
+                End Using
+            End Using
         Catch ex As Exception
             Return "Error: " & ex.Message
-        Finally
-            conexion.Close()
         End Try
-        Return "Error: No se ha podido el alumno porque no tiene información"
     End Function
 
     Public Function AlumnoPorCiclo(codigoCiclo As String) As List(Of Alumno)
-        Dim listaAlumnos As New List(Of Alumno)
         If codigoCiclo Is Nothing Then
             Return Nothing
         End If
-
-        Dim conexion As New SqlConnection(cadenaConexion)
+        Dim listaAlumnos As New List(Of Alumno)
         Dim sql As String = "SELECT COUNT(*) FROM CICLO WHERE codigoCiclo = @codigoCiclo;"
-        Try
-            conexion.Open()
-            Dim cmdCodigoCiclo As New SqlCommand(sql, conexion)
-            cmdCodigoCiclo.Parameters.AddWithValue("@codigoCiclo", codigoCiclo)
-            Dim dr As Integer = cmdCodigoCiclo.ExecuteScalar()
+        Dim sqlAlumnosPorCiclo As String = "SELECT nombre, dni, email, telefono, apellido1, codigoCiclo FROM ALUMNO WHERE codigoCiclo = @codigociclo;"
 
-            If dr = 0 Then
-                conexion.Close()
-                Return Nothing
-            End If
+        Try
+            Using conexion As New SqlConnection(cadenaConexion)
+                conexion.Open()
+                Using commandCycleCheck As New SqlCommand(sql, conexion)
+                    commandCycleCheck.Parameters.AddWithValue("@codigoCiclo", codigoCiclo)
+                    Dim cycleCount As Integer = commandCycleCheck.ExecuteScalar()
+                    If cycleCount = 0 Then
+                        Return Nothing
+                    End If
+                End Using
+            End Using
         Catch ex As Exception
             Return Nothing
-            conexion.Close()
         End Try
-        Dim sql2 As String = "SELECT nombre, dni, email, telefono, apellido1, codigoCiclo FROM ALUMNO WHERE codigoCiclo = @codigociclo;"
-        Try
-            conexion.Open()
-            Dim cmdCodigoLista As New SqlCommand(sql2, conexion)
-            cmdCodigoLista.Parameters.AddWithValue("@codigoCiclo", codigoCiclo)
-            Dim drListaAlumn As SqlDataReader = cmdCodigoLista.ExecuteReader()
-            While drListaAlumn.Read()
-                Dim alum As New Alumno(drListaAlumn("dni"), drListaAlumn("nombre"), drListaAlumn("telefono"), drListaAlumn("email"), drListaAlumn("apellido1"), drListaAlumn("codigoCiclo"))
 
-                listaAlumnos.Add(alum)
-            End While
-            conexion.Close()
+        Try
+            Using conexion As New SqlConnection(cadenaConexion)
+                conexion.Open()
+                Using commandAlumnosPorCiclo As New SqlCommand(sqlAlumnosPorCiclo, conexion)
+                    commandAlumnosPorCiclo.Parameters.AddWithValue("@codigoCiclo", codigoCiclo)
+                    Using reader As SqlDataReader = commandAlumnosPorCiclo.ExecuteReader()
+                        While reader.Read()
+                            Dim alumno As New Alumno(reader("dni"), reader("nombre"), reader("telefono"), reader("email"), reader("apellido1"), reader("codigoCiclo"))
+                            listaAlumnos.Add(alumno)
+                        End While
+                    End Using
+                End Using
+            End Using
             Return listaAlumnos
         Catch ex As Exception
             Return Nothing
         End Try
-
     End Function
 
-    Public Function insertarJornadaAlumno(jor As Jornada) As String
-
-        Dim conexion As New SqlConnection(cadenaConexion)
+    Public Function insertarJornadaAlumno(jornada As Jornada) As String
         Dim sql As String = "Insert into Jornada (dniAlumno, fecha, Horas, Estado) values(@dniAlumno, @fecha, @Horas, @Estado);"
-        ' COMPROBAR SI LA JORNADA A INSERTAR EXISTE con select
-        ' Select * From Jornada Where dniAlumno = @dni And fecha = @fecha
-
         Try
-            'Dim dniAlum As String = ComprobarDni(jor.DniAlumno)
-            'If dniAlum.Contains("Error") Then
-            '    Return "Error: el Dni no es valido"
-            'End If
-            'Dim dniA As Alumno = AlumnoPorDni(jor.DniAlumno)
-            'If dniA Is Nothing Then
-            '    Return "Error: Alumno no encontrado"
-            'End If
-            'If jor.Fecha = "" Then
-            '    Return "La fecha no es valida"
-            'End If
-            conexion.Open()
-            Dim cmdInsertarJornada As New SqlCommand(sql, conexion)
-            cmdInsertarJornada.Parameters.AddWithValue("@dniAlumno", jor.DniAlumno)
-            cmdInsertarJornada.Parameters.AddWithValue("@fecha", jor.Fecha)
-            cmdInsertarJornada.Parameters.AddWithValue("@Horas", jor.HorasJornada)
-            cmdInsertarJornada.Parameters.AddWithValue("@Estado", jor.Estado)
-            Dim nFilas As Integer = cmdInsertarJornada.ExecuteNonQuery
-            If nFilas = 0 Then
-                Return "No se ha podido añadir jornadas"
-            Else
-                Return "Se ha añadido la jornada"
-            End If
+            Using conexion As New SqlConnection(cadenaConexion)
+                conexion.Open()
+                Using command As New SqlCommand(sql, conexion)
+                    command.Parameters.AddWithValue("@dniAlumno", jornada.DniAlumno)
+                    command.Parameters.AddWithValue("@fecha", jornada.Fecha)
+                    command.Parameters.AddWithValue("@Horas", jornada.HorasJornada)
+                    command.Parameters.AddWithValue("@Estado", jornada.Estado)
+                    Dim affectedRows As Integer = command.ExecuteNonQuery
+                    If affectedRows = 0 Then
+                        Return "No se ha podido añadir jornadas"
+                    Else
+                        Return "Se ha añadido la jornada"
+                    End If
+                End Using
+            End Using
         Catch ex As Exception
-            Return "Error" & ex.Message
-        Finally
-            conexion.Close()
+            Return "Error: " & ex.Message
         End Try
     End Function
 
@@ -255,31 +220,26 @@ Public Class GestionAplicacion
             Return "No existe ningún alumno con ese DNI"
         End If
         Dim horasTotales As Integer = 0
-        Dim conexion As New SqlConnection(cadenaConexion)
-        ' Dim dniAlum As String = ComprobarDni(jorHoras.DniAlumno)
         Dim sql As String = "Select Horas From Jornada Where dniAlumno = @dni;"
         Try
-            conexion.Open()
-            Dim cmdHorasToral As New SqlCommand(sql, conexion)
-            cmdHorasToral.Parameters.AddWithValue("@dni", alumno.Dni)
-            Dim drHorasAlum As SqlDataReader = cmdHorasToral.ExecuteReader()
-
-            While drHorasAlum.Read
-                horasTotales = horasTotales + drHorasAlum("Horas")
-
-            End While
-            drHorasAlum.Close()
+            Using conexion As New SqlConnection(cadenaConexion)
+                conexion.Open()
+                Using command As New SqlCommand(sql, conexion)
+                    command.Parameters.AddWithValue("@dni", alumno.Dni)
+                    Using reader As SqlDataReader = command.ExecuteReader()
+                        While reader.Read
+                            horasTotales = horasTotales + reader("Horas")
+                        End While
+                    End Using
+                End Using
+            End Using
         Catch ex As Exception
             Return "Error: " & ex.Message
-        Finally
-            conexion.Close()
         End Try
         Return "Las horas totales del alumno con el DNI: " & alumno.Dni & " son " & horasTotales
     End Function
 
     Public Function ComprobarDni(dni As String) As String
-        Dim letras As String = "TRWAGMYFPDXBNJZSQVHLCKE"
-
         If dni.Length <> 9 Then
             Return "Error: Longitud incorrecta"
         End If
@@ -290,7 +250,7 @@ Public Class GestionAplicacion
         End If
 
         Dim letra As Char = Char.ToUpper(dni(8))
-        Dim letraCorrecta As Char = letras(numero Mod 23)
+        Dim letraCorrecta As Char = LetrasDni(numero Mod ModuloDni)
 
         If letra = letraCorrecta Then
             Return "DNI válido"
@@ -299,105 +259,94 @@ Public Class GestionAplicacion
         End If
     End Function
 
-    Public Function ModuloDeAlumno(alum As Alumno) As List(Of Modulo)
+    Public Function ModuloDeAlumno(alumno As Alumno) As List(Of Modulo)
         Dim listaModulos As New List(Of Modulo)
-        Dim conexion As New SqlConnection(cadenaConexion)
-        Dim alumno As Alumno = AlumnoPorDni(alum.Dni)
+        Dim alumnoVerificado As Alumno = AlumnoPorDni(alumno.Dni)
         Dim sql As String = "SELECT modulo.codigoModulo, modulo.nombre, modulo.codigoCiclo FROM modulo INNER JOIN ciclo ON modulo.codigoCiclo = ciclo.codigoCiclo INNER JOIN alumno ON alumno.codigoCiclo = ciclo.codigoCiclo WHERE alumno.dni = @dni;"
         Try
-            conexion.Open()
-            Dim cmdModulos As New SqlCommand(sql, conexion)
-            cmdModulos.Parameters.AddWithValue("@dni", alumno.Dni)
-            Dim drModulos As SqlDataReader = cmdModulos.ExecuteReader
-            While drModulos.Read()
-                Dim modu As New Modulo()
-                modu.CodigoModulo = drModulos("codigoModulo").ToString()
-                modu.NombreModulo = drModulos("nombre").ToString()
-                modu.CodigoCiclo = drModulos("codigoCiclo").ToString()
-                listaModulos.Add(modu)
-            End While
-            drModulos.Close()
-
+            Using conexion As New SqlConnection(cadenaConexion)
+                conexion.Open()
+                Using command As New SqlCommand(sql, conexion)
+                    command.Parameters.AddWithValue("@dni", alumnoVerificado.Dni)
+                    Using reader As SqlDataReader = command.ExecuteReader()
+                        While reader.Read()
+                            Dim modulo As New Modulo()
+                            modulo.CodigoModulo = reader("codigoModulo").ToString()
+                            modulo.NombreModulo = reader("nombre").ToString()
+                            modulo.CodigoCiclo = reader("codigoCiclo").ToString()
+                            listaModulos.Add(modulo)
+                        End While
+                    End Using
+                End Using
+            End Using
             If listaModulos.Count = 0 Then
                 Return Nothing
             End If
-
         Catch ex As Exception
-        Finally
-            conexion.Close()
-
+            ' Silent catch preserved - no-op by design
         End Try
-
-
+        ' FIXME: falta Return listaModulos — el método siempre devuelve Nothing
     End Function
 
-    Public Function insertarTareaAlumno(task As Tarea) As String
-        Dim conexion As New SqlConnection(cadenaConexion)
-        Dim mensaje As String = comprobarSiTareaExisteEnAlumno(task.CodigoTarea, task.FechaJornada, task.DniAlumno)
+    Public Function insertarTareaAlumno(tarea As Tarea) As String
+        Dim mensaje As String = comprobarSiTareaExisteEnAlumno(tarea.CodigoTarea, tarea.FechaJornada, tarea.DniAlumno)
         If mensaje.Contains("Error") Then
             Return mensaje
         End If
         Dim sql As String = "Insert into tarea(codigotarea, dnialumno, fechajornada, descripcion, horas) values (@codigotarea, @dnialumno, @fechajornada, @descripcion, @horas);"
-
         Try
-            conexion.Open()
-            Dim cmdInsertarTarea As New SqlCommand(sql, conexion)
-            cmdInsertarTarea.Parameters.AddWithValue("@dnialumno", task.DniAlumno)
-            cmdInsertarTarea.Parameters.AddWithValue("@codigotarea", task.CodigoTarea)
-            cmdInsertarTarea.Parameters.AddWithValue("@fechajornada", task.FechaJornada)
-            cmdInsertarTarea.Parameters.AddWithValue("@descripcion", task.DescripcionTarea)
-            cmdInsertarTarea.Parameters.AddWithValue("@horas", task.HorasTarea)
-
-            Dim nFilas As Integer = cmdInsertarTarea.ExecuteNonQuery
-            If nFilas = 0 Then
-                Return "Error: No se ha podido añadir la tarea"
-            Else
-                Return "Se ha añadido la tarea al alumno con el DNI: " & task.DniAlumno
-            End If
-
-
+            Using conexion As New SqlConnection(cadenaConexion)
+                conexion.Open()
+                Using command As New SqlCommand(sql, conexion)
+                    command.Parameters.AddWithValue("@dnialumno", tarea.DniAlumno)
+                    command.Parameters.AddWithValue("@codigotarea", tarea.CodigoTarea)
+                    command.Parameters.AddWithValue("@fechajornada", tarea.FechaJornada)
+                    command.Parameters.AddWithValue("@descripcion", tarea.DescripcionTarea)
+                    command.Parameters.AddWithValue("@horas", tarea.HorasTarea)
+                    Dim affectedRows As Integer = command.ExecuteNonQuery
+                    If affectedRows = 0 Then
+                        Return "Error: No se ha podido añadir la tarea"
+                    Else
+                        Return "Se ha añadido la tarea al alumno con el DNI: " & tarea.DniAlumno
+                    End If
+                End Using
+            End Using
         Catch ex As Exception
             Return "Error: " & ex.Message
-        Finally
-            conexion.Close()
         End Try
-
-
     End Function
 
-    'QUE SE PUEDA MODIFICAR UNA TAREA YA CREADA PERO SOLO LA DESCRIPCION Y LAS HORAS
     Public Function comprobarSiTareaExisteEnAlumno(codigoTarea As String, fechaTarea As Date, dni As String) As String
-        Dim dniBien As String = ComprobarDni(dni)
-        If dniBien.Contains("Error") Then ' todo la letra A no es valida en DNI
+        Dim dniValidacion As String = ComprobarDni(dni)
+        If dniValidacion.Contains("Error") Then
             Return "Error: DNI no válido"
         End If
-        Dim alum As Alumno = AlumnoPorDni(dni)
-        If alum Is Nothing Then
+        Dim alumno As Alumno = AlumnoPorDni(dni)
+        If alumno Is Nothing Then
             Return "Error: el DNI no está en la base de datos"
         End If
-        Dim conexion As New SqlConnection(cadenaConexion)
         Dim sql As String = "Select dni from Tarea Where codigotarea = @codigotarea AND fechajornada = @fechajornada AND dniAlumno = @dnialumno;"
-
         Try
-            conexion.Open()
-            Dim cmdComprobarTarea As New SqlCommand(sql, conexion)
-            cmdComprobarTarea.Parameters.AddWithValue("@dnialumno", dni)
-            cmdComprobarTarea.Parameters.AddWithValue("@codigotarea", codigoTarea)
-            cmdComprobarTarea.Parameters.AddWithValue("@fechajornada", fechaTarea)
-            Dim drTarea As SqlDataReader = cmdComprobarTarea.ExecuteReader()
-            If Not drTarea.HasRows Then
-                Return "El alumno con el DNI " & alum.Dni & " no tiene esa tarea"
-            Else
-                Return "Error: El alumno con el DNI " & alum.Dni & " tiene esa tarea"
-            End If
+            Using conexion As New SqlConnection(cadenaConexion)
+                conexion.Open()
+                Using command As New SqlCommand(sql, conexion)
+                    command.Parameters.AddWithValue("@dnialumno", dni)
+                    command.Parameters.AddWithValue("@codigotarea", codigoTarea)
+                    command.Parameters.AddWithValue("@fechajornada", fechaTarea)
+                    Using reader As SqlDataReader = command.ExecuteReader()
+                        If Not reader.HasRows Then
+                            Return "El alumno con el DNI " & alumno.Dni & " no tiene esa tarea"
+                        Else
+                            Return "Error: El alumno con el DNI " & alumno.Dni & " tiene esa tarea"
+                        End If
+                    End Using
+                End Using
+            End Using
         Catch ex As Exception
-            Return "Error:" & ex.Message
-        Finally
-            conexion.Close()
+            Return "Error: " & ex.Message
         End Try
-
-
     End Function
+
     Public Function ComprobarEmail(email As String) As String
         If String.IsNullOrWhiteSpace(email) Then
             Return "Error: Email vacío"
@@ -413,35 +362,35 @@ Public Class GestionAplicacion
             Return "Error: El email debe contener un punto"
         End If
         If email.IndexOf("@") > email.LastIndexOf(".") Then
-            Return "Error, no hay punto tras @"
+            Return "Error: no hay punto tras @"
         End If
         Return "Email válido"
     End Function
-    Public Function ComprobarTelefono(tlf As String) As String
-        If String.IsNullOrWhiteSpace(tlf) Then
+
+    Public Function ComprobarTelefono(telefono As String) As String
+        If String.IsNullOrWhiteSpace(telefono) Then
             Return "Error: Teléfono vacío"
         End If
 
-        tlf = tlf.Trim()
+        telefono = telefono.Trim()
 
-        If tlf.Length <> 9 Then
+        If telefono.Length <> 9 Then
             Return "Error: El teléfono debe tener 9 dígitos"
         End If
 
-        If Not Char.IsDigit(tlf(0)) Then
+        If Not Char.IsDigit(telefono(0)) Then
             Return "Error: El teléfono debe empezar por un número"
         End If
 
-        If tlf(0) <> "6"c AndAlso tlf(0) <> "7"c Then
+        If telefono(0) <> "6"c AndAlso telefono(0) <> "7"c Then
             Return "Error: El teléfono debe empezar por 6 o 7"
         End If
 
-        If Not tlf.All(Function(c) Char.IsDigit(c)) Then
+        If Not telefono.All(Function(c) Char.IsDigit(c)) Then
             Return "Error: El teléfono solo puede contener números"
         End If
 
         Return "Teléfono válido"
     End Function
-
 
 End Class

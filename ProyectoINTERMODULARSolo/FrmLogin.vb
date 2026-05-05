@@ -37,15 +37,15 @@ Public Class FrmLogin
     End Sub
 
     Private Sub FrmLogin_Load(sender As Object, e As EventArgs) Handles MyBase.Load
-
-        Dim alumno As Alumno = New Alumno("", "aa@gmail.com", "666777888", "markel", "salva", "2")
-        Dim jornada As Jornada = New Jornada("2025/03/3", "12345678A", "4", "REALIZADA")
-        Dim tarea As Tarea = New Tarea("1", Today, "dkfjadsk", 3, "12345678Z")
+        ' Seed data temporal desactivado - los datos se gestionan desde la UI
+        ' Dim alumno As Alumno = New Alumno("", "aa@gmail.com", "666777888", "markel", "salva", "2")
+        ' Dim jornada As Jornada = New Jornada("2025/03/3", "12345678A", "4", "REALIZADA")
+        ' Dim tarea As Tarea = New Tarea("1", Today, "dkfjadsk", 3, "12345678Z")
         'miGestor.DarAltaAlumnado(Alumno)
         'MessageBox.Show(miGestor.BorrarYComprobarInformacionAlumno(alumno))
         'miGestor.insertarJornadaAlumno(jornada) MEJORAR
         '  MessageBox.Show(miGestor.totalHorasAlumno("12345678A"))
-        MessageBox.Show(miGestor.insertarTareaAlumno(tarea))
+        ' MessageBox.Show(miGestor.insertarTareaAlumno(tarea))
     End Sub
 End Class
 

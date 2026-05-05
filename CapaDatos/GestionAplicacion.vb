@@ -303,17 +303,23 @@ Public Class GestionAplicacion
         Dim listaModulos As New List(Of Modulo)
         Dim conexion As New SqlConnection(cadenaConexion)
         Dim alumno As Alumno = AlumnoPorDni(alum.Dni)
-        Dim sql As String = "SELECT modulo.nombre FROM modulo INNER JOIN ciclo ON modulo.codigoCiclo = ciclo.codigoCiclo INNER JOIN alumno ON alumno.codigoCiclo = ciclo.codigoCiclo WHERE alumno.dni = @dni;"
+        Dim sql As String = "SELECT modulo.codigoModulo, modulo.nombre, modulo.codigoCiclo FROM modulo INNER JOIN ciclo ON modulo.codigoCiclo = ciclo.codigoCiclo INNER JOIN alumno ON alumno.codigoCiclo = ciclo.codigoCiclo WHERE alumno.dni = @dni;"
         Try
             conexion.Open()
             Dim cmdModulos As New SqlCommand(sql, conexion)
             cmdModulos.Parameters.AddWithValue("@dni", alumno.Dni)
             Dim drModulos As SqlDataReader = cmdModulos.ExecuteReader
-            If Not drModulos.HasRows Then
-                drModulos.Close()
+            While drModulos.Read()
+                Dim modu As New Modulo()
+                modu.CodigoModulo = drModulos("codigoModulo").ToString()
+                modu.NombreModulo = drModulos("nombre").ToString()
+                modu.CodigoCiclo = drModulos("codigoCiclo").ToString()
+                listaModulos.Add(modu)
+            End While
+            drModulos.Close()
+
+            If listaModulos.Count = 0 Then
                 Return Nothing
-            Else
-                ' HACEER UN BUCLE PARA METER LOS MODULOS DE EL ALUMNO
             End If
 
         Catch ex As Exception
@@ -331,12 +337,16 @@ Public Class GestionAplicacion
         If mensaje.Contains("Error") Then
             Return mensaje
         End If
-        Dim sql As String = "Insert into tarea(codigotarea, dnialumno, fechajornada, descripcion, horas) values (@codigotarea, @dnialumno, @fechajornada, @descripcion, @horas;"
+        Dim sql As String = "Insert into tarea(codigotarea, dnialumno, fechajornada, descripcion, horas) values (@codigotarea, @dnialumno, @fechajornada, @descripcion, @horas);"
 
         Try
             conexion.Open()
             Dim cmdInsertarTarea As New SqlCommand(sql, conexion)
             cmdInsertarTarea.Parameters.AddWithValue("@dnialumno", task.DniAlumno)
+            cmdInsertarTarea.Parameters.AddWithValue("@codigotarea", task.CodigoTarea)
+            cmdInsertarTarea.Parameters.AddWithValue("@fechajornada", task.FechaJornada)
+            cmdInsertarTarea.Parameters.AddWithValue("@descripcion", task.DescripcionTarea)
+            cmdInsertarTarea.Parameters.AddWithValue("@horas", task.HorasTarea)
 
             Dim nFilas As Integer = cmdInsertarTarea.ExecuteNonQuery
             If nFilas = 0 Then
@@ -366,13 +376,14 @@ Public Class GestionAplicacion
             Return "Error: el DNI no está en la base de datos"
         End If
         Dim conexion As New SqlConnection(cadenaConexion)
-        Dim sql As String = "Select dni from Tarea Where codigotarea = @codigotarea, fechatarea = @fechatarea, dniAlumno = @dnialumno;"
+        Dim sql As String = "Select dni from Tarea Where codigotarea = @codigotarea AND fechajornada = @fechajornada AND dniAlumno = @dnialumno;"
 
         Try
             conexion.Open()
             Dim cmdComprobarTarea As New SqlCommand(sql, conexion)
             cmdComprobarTarea.Parameters.AddWithValue("@dnialumno", dni)
-            ' todo otros parámetrs
+            cmdComprobarTarea.Parameters.AddWithValue("@codigotarea", codigoTarea)
+            cmdComprobarTarea.Parameters.AddWithValue("@fechajornada", fechaTarea)
             Dim drTarea As SqlDataReader = cmdComprobarTarea.ExecuteReader()
             If Not drTarea.HasRows Then
                 Return "El alumno con el DNI " & alum.Dni & " no tiene esa tarea"

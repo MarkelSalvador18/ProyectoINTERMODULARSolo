@@ -1,6 +1,7 @@
 ﻿Public Class Tarea
     Implements IEquatable(Of Tarea)
 
+    Public RAs As New List(Of RA)
     Public Property CodigoTarea As String
     Public Property FechaJornada As Date
     Public Property DescripcionTarea As String

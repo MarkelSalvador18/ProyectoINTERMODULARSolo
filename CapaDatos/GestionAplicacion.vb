@@ -393,4 +393,46 @@ Public Class GestionAplicacion
         Return "Teléfono válido"
     End Function
 
+    Public Function BorrarJornada(fecha As Date, dniAlumno As String) As String
+        Dim conexion As New SqlConnection(cadenaConexion)
+        Dim sql As String = "Select fecha, dniAlumno from jornada where fecha = @fecha and dnialumno = @dniAlumno;"
+        Try
+            conexion.Open()
+            Dim cmdBuscarJornada As New SqlCommand(sql, conexion)
+            cmdBuscarJornada.Parameters.AddWithValue("@fecha", fecha)
+            cmdBuscarJornada.Parameters.AddWithValue("@dniAlumno", dniAlumno)
+            Dim drJornada As SqlDataReader = cmdBuscarJornada.ExecuteReader
+            If Not drJornada.HasRows Then
+                Return "Error: La jornada no existe"
+            ElseIf drJornada.HasRows Then
+                Dim sql2 As String = "Select fecha, dniAlumno from jornada inner join tarea on jornada.fecha = tarea.fechajornada and jornada.dnialumno = tarea.dnialumno where fechajornada = @fecha and dnialumno = @dnialumno;"
+                Dim cmdBuscarTarea As New SqlCommand(sql2, conexion)
+                cmdBuscarTarea.Parameters.AddWithValue("@fechajornada", fecha)
+                cmdBuscarTarea.Parameters.AddWithValue("@dnalumno", dniAlumno)
+                Dim drTarea As SqlDataReader = cmdBuscarJornada.ExecuteReader
+                If Not drTarea.HasRows Then
+                    Return "Error: La jornada tiene tareas"
+                ElseIf drTarea.HasRows Then
+                    Dim sql3 As String = "Delete from jornada where fecha = @fecha and dnialumno = @dnialumno"
+                    Dim cmdBorrarJornada As New SqlCommand(sql3, conexion)
+                    cmdBorrarJornada.Parameters.AddWithValue("@fecha", fecha)
+                    cmdBorrarJornada.Parameters.AddWithValue("@dnialumno", dniAlumno)
+                    Dim drBorrar As Integer = cmdBorrarJornada.ExecuteNonQuery
+                    If drBorrar = 0 Then
+                        Return "Error: No se ha podido borrar"
+                    Else
+                        Return "Se ha borrado la Jornada"
+                    End If
+                End If
+            End If
+        Catch ex As Exception
+            Return "Error: " & ex.StackTrace
+        Finally
+            conexion.Close()
+        End Try
+
+
+    End Function
+
+
 End Class

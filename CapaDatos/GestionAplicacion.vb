@@ -431,10 +431,6 @@ Public Class GestionAplicacion
         End Try
     End Function
 
-<<<<<<< Updated upstream
-=======
-
-
 
     Public Function ObtenerJornadasAlumno(DniAlumno As String) As List(Of Jornada)
         If DniAlumno Is Nothing Then
@@ -484,6 +480,4 @@ Public Class GestionAplicacion
 
     End Function
 
-
->>>>>>> Stashed changes
 End Class

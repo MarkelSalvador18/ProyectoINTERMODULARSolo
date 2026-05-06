@@ -70,7 +70,7 @@ Public Class GestionAplicacion
                         End If
                         reader.Read()
                         ' FIXME: nombre y email intercambiados en el constructor — los datos se asignan incorrectamente
-                        Dim alumno As Alumno = New Alumno(reader("dni"), reader("nombre"), reader("telefono"), reader("email"), reader("apellido1"), reader("codigociclo"))
+                        Dim alumno As Alumno = New Alumno(reader("dni"), reader("email"), reader("telefono"), reader("nombre"), reader("apellido1"), reader("codigociclo"))
                         Return alumno
                     End Using
                 End Using
@@ -285,7 +285,7 @@ Public Class GestionAplicacion
         Catch ex As Exception
             ' Silent catch preserved - no-op by design
         End Try
-        ' FIXME: falta Return listaModulos — el método siempre devuelve Nothing
+        Return listaModulos
     End Function
 
     Public Function insertarTareaAlumno(tarea As Tarea) As String
@@ -382,7 +382,7 @@ Public Class GestionAplicacion
             Return "Error: El teléfono debe empezar por un número"
         End If
 
-        If telefono(0) <> "6"c AndAlso telefono(0) <> "7"c Then
+        If telefono(0) <> "6" AndAlso telefono(0) <> "7" Then
             Return "Error: El teléfono debe empezar por 6 o 7"
         End If
 
@@ -392,7 +392,6 @@ Public Class GestionAplicacion
 
         Return "Teléfono válido"
     End Function
-
     Public Function BorrarJornada(fecha As Date, dniAlumno As String) As String
         Dim conexion As New SqlConnection(cadenaConexion)
         Dim sql As String = "Select fecha, dniAlumno from jornada where fecha = @fecha and dnialumno = @dniAlumno;"
@@ -430,9 +429,6 @@ Public Class GestionAplicacion
         Finally
             conexion.Close()
         End Try
-
-
     End Function
-
 
 End Class

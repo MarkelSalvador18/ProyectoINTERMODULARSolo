@@ -46,7 +46,7 @@ Public Class GestionAplicacion
                     command.Parameters.AddWithValue("@CodigoCiclo", alumno.CodigoCiclo)
                     Dim affectedRows As Integer = command.ExecuteNonQuery
                     If affectedRows = 0 Then
-                        Return "No se ha podido añadir al alumno"
+                        Return "No se ha podido añadir al alumni"
                     Else
                         Return "Se ha añadido al alumno"
                     End If
@@ -70,7 +70,7 @@ Public Class GestionAplicacion
                         End If
                         reader.Read()
                         ' FIXME: nombre y email intercambiados en el constructor — los datos se asignan incorrectamente
-                        Dim alumno As Alumno = New Alumno(reader("dni"), reader("nombre"), reader("telefono"), reader("email"), reader("apellido1"), reader("codigociclo"))
+                        Dim alumno As Alumno = New Alumno(reader("dni"), reader("email"), reader("telefono"), reader("nombre"), reader("apellido1"), reader("codigociclo"))
                         Return alumno
                     End Using
                 End Using
@@ -285,7 +285,7 @@ Public Class GestionAplicacion
         Catch ex As Exception
             ' Silent catch preserved - no-op by design
         End Try
-        ' FIXME: falta Return listaModulos — el método siempre devuelve Nothing
+        Return listaModulos
     End Function
 
     Public Function insertarTareaAlumno(tarea As Tarea) As String
@@ -382,7 +382,7 @@ Public Class GestionAplicacion
             Return "Error: El teléfono debe empezar por un número"
         End If
 
-        If telefono(0) <> "6"c AndAlso telefono(0) <> "7"c Then
+        If telefono(0) <> "6" AndAlso telefono(0) <> "7" Then
             Return "Error: El teléfono debe empezar por 6 o 7"
         End If
 
@@ -391,6 +391,44 @@ Public Class GestionAplicacion
         End If
 
         Return "Teléfono válido"
+    End Function
+    Public Function BorrarJornada(fecha As Date, dniAlumno As String) As String
+        Dim conexion As New SqlConnection(cadenaConexion)
+        Dim sql As String = "Select fecha, dniAlumno from jornada where fecha = @fecha and dnialumno = @dniAlumno;"
+        Try
+            conexion.Open()
+            Dim cmdBuscarJornada As New SqlCommand(sql, conexion)
+            cmdBuscarJornada.Parameters.AddWithValue("@fecha", fecha)
+            cmdBuscarJornada.Parameters.AddWithValue("@dniAlumno", dniAlumno)
+            Dim drJornada As SqlDataReader = cmdBuscarJornada.ExecuteReader
+            If Not drJornada.HasRows Then
+                Return "Error: La jornada no existe"
+            ElseIf drJornada.HasRows Then
+                Dim sql2 As String = "Select fecha, dniAlumno from jornada inner join tarea on jornada.fecha = tarea.fechajornada and jornada.dnialumno = tarea.dnialumno where fechajornada = @fecha and dnialumno = @dnialumno;"
+                Dim cmdBuscarTarea As New SqlCommand(sql2, conexion)
+                cmdBuscarTarea.Parameters.AddWithValue("@fechajornada", fecha)
+                cmdBuscarTarea.Parameters.AddWithValue("@dnalumno", dniAlumno)
+                Dim drTarea As SqlDataReader = cmdBuscarJornada.ExecuteReader
+                If Not drTarea.HasRows Then
+                    Return "Error: La jornada tiene tareas"
+                ElseIf drTarea.HasRows Then
+                    Dim sql3 As String = "Delete from jornada where fecha = @fecha and dnialumno = @dnialumno"
+                    Dim cmdBorrarJornada As New SqlCommand(sql3, conexion)
+                    cmdBorrarJornada.Parameters.AddWithValue("@fecha", fecha)
+                    cmdBorrarJornada.Parameters.AddWithValue("@dnialumno", dniAlumno)
+                    Dim drBorrar As Integer = cmdBorrarJornada.ExecuteNonQuery
+                    If drBorrar = 0 Then
+                        Return "Error: No se ha podido borrar"
+                    Else
+                        Return "Se ha borrado la Jornada"
+                    End If
+                End If
+            End If
+        Catch ex As Exception
+            Return "Error: " & ex.StackTrace
+        Finally
+            conexion.Close()
+        End Try
     End Function
 
 <<<<<<< Updated upstream

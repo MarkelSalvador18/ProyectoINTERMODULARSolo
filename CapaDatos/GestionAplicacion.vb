@@ -392,6 +392,46 @@ Public Class GestionAplicacion
 
         Return "Teléfono válido"
     End Function
+
+    Public Function ModificarJornada(jor As Jornada) As String
+        Dim sqlExists As String = "SELECT COUNT(*) FROM Jornada WHERE fecha = @fecha AND dniAlumno = @dniAlumno;"
+        Dim sqlUpdate As String = "UPDATE Jornada SET Horas = @Horas, Estado = @Estado WHERE fecha = @fecha AND dniAlumno = @dniAlumno;"
+        If jor.HorasJornada < 0 OrElse jor.HorasJornada > 8 Then
+            Return "Error: Las horas deben estar entre 0 y 8"
+        End If
+        Dim estadosValidos As String() = {"PENDIENTE", "REALIZADA", "CANCELADA"}
+        If Not estadosValidos.Contains(jor.Estado.ToUpper()) Then
+            Return "Error: El estado debe ser PENDIENTE, REALIZADA o CANCELADA"
+        End If
+        Try
+            Using conexion As New SqlConnection(cadenaConexion)
+                conexion.Open()
+                Using commandExists As New SqlCommand(sqlExists, conexion)
+                    commandExists.Parameters.AddWithValue("@fecha", jor.Fecha)
+                    commandExists.Parameters.AddWithValue("@dniAlumno", jor.DniAlumno)
+                    Dim exists As Integer = commandExists.ExecuteScalar()
+                    If exists = 0 Then
+                        Return "Error: La jornada no existe"
+                    End If
+                End Using
+                Using commandUpdate As New SqlCommand(sqlUpdate, conexion)
+                    commandUpdate.Parameters.AddWithValue("@fecha", jor.Fecha)
+                    commandUpdate.Parameters.AddWithValue("@dniAlumno", jor.DniAlumno)
+                    commandUpdate.Parameters.AddWithValue("@Horas", jor.HorasJornada)
+                    commandUpdate.Parameters.AddWithValue("@Estado", jor.Estado.ToUpper())
+                    Dim affectedRows As Integer = commandUpdate.ExecuteNonQuery()
+                    If affectedRows = 0 Then
+                        Return "Error: No se ha podido modificar la jornada"
+                    Else
+                        Return "Jornada modificada correctamente"
+                    End If
+                End Using
+            End Using
+        Catch ex As Exception
+            Return "Error: " & ex.Message
+        End Try
+    End Function
+
     Public Function BorrarJornada(fecha As Date, dniAlumno As String) As String
         Dim conexion As New SqlConnection(cadenaConexion)
         Dim sql As String = "Select fecha, dniAlumno from jornada where fecha = @fecha and dnialumno = @dniAlumno;"

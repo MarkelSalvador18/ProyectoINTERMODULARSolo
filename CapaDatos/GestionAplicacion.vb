@@ -393,4 +393,59 @@ Public Class GestionAplicacion
         Return "Teléfono válido"
     End Function
 
+<<<<<<< Updated upstream
+=======
+
+
+
+    Public Function ObtenerJornadasAlumno(DniAlumno As String) As List(Of Jornada)
+        If DniAlumno Is Nothing Then
+            Return Nothing
+        End If
+
+        Dim listaJornadas As New List(Of Jornada)
+        Dim sql As String = "SELECT COUNT(*) FROM CICLO WHERE DniAlumno = @DniAlumno;"
+        Dim sqlJornadasPorAlumnos As String = "SELECT Fecha, DniAlumno, HorasJornada, estado FROM ALUMNO WHERE DniAlumno = @DniAlumno;"
+
+        Try
+            Using conexion As New SqlConnection(cadenaConexion)
+                conexion.Open()
+
+                Using commandCycleCheck As New SqlCommand(sql, conexion)
+                    commandCycleCheck.Parameters.AddWithValue("@DniAlumno", DniAlumno)
+                    Dim cycleCount As Integer = commandCycleCheck.ExecuteScalar()
+                    If cycleCount = 0 Then
+                        Return Nothing
+                    End If
+                End Using
+
+
+                Using cmd As New SqlCommand(sqlJornadasPorAlumnos, conexion)
+                    cmd.Parameters.AddWithValue("@DniAlumno", DniAlumno)
+                    Using reader As SqlDataReader = cmd.ExecuteReader()
+                        While reader.Read()
+                            Dim j As New Jornada With {
+                                .Fecha = reader("Fecha"),
+                                .DniAlumno = reader("DniAlumno").ToString(),
+                                .HorasJornada = Convert.ToInt32(reader("HorasJornada")),
+                                .Estado = reader("estado").ToString()
+                            }
+                            listaJornadas.Add(j)
+                        End While
+
+                    End Using
+                End Using
+
+            End Using
+
+            Return listaJornadas
+
+        Catch ex As Exception
+            Return Nothing
+        End Try
+
+    End Function
+
+
+>>>>>>> Stashed changes
 End Class

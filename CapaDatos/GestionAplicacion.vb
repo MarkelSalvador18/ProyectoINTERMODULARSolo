@@ -433,41 +433,43 @@ Public Class GestionAplicacion
     End Function
 
     Public Function BorrarJornada(fecha As Date, dniAlumno As String) As String
-        Dim conexion As New SqlConnection(cadenaConexion)
-        Dim sql As String = "Select fecha, dniAlumno from jornada where fecha = @fecha and dnialumno = @dniAlumno;"
+        Dim sqlBuscarJornada As String = "Select fecha, dniAlumno from jornada where fecha = @fecha and dnialumno = @dnialumno;"
+        Dim sqlBuscarTareas As String = "Select 1 from tarea where fechajornada = @fecha and dnialumno = @dnialumno;"
+        Dim sqlBorrar As String = "Delete from jornada where fecha = @fecha and dnialumno = @dnialumno;"
         Try
-            conexion.Open()
-            Dim cmdBuscarJornada As New SqlCommand(sql, conexion)
-            cmdBuscarJornada.Parameters.AddWithValue("@fecha", fecha)
-            cmdBuscarJornada.Parameters.AddWithValue("@dniAlumno", dniAlumno)
-            Dim drJornada As SqlDataReader = cmdBuscarJornada.ExecuteReader
-            If Not drJornada.HasRows Then
-                Return "Error: La jornada no existe"
-            ElseIf drJornada.HasRows Then
-                Dim sql2 As String = "Select fecha, dniAlumno from jornada inner join tarea on jornada.fecha = tarea.fechajornada and jornada.dnialumno = tarea.dnialumno where fechajornada = @fecha and dnialumno = @dnialumno;"
-                Dim cmdBuscarTarea As New SqlCommand(sql2, conexion)
-                cmdBuscarTarea.Parameters.AddWithValue("@fechajornada", fecha)
-                cmdBuscarTarea.Parameters.AddWithValue("@dnalumno", dniAlumno)
-                Dim drTarea As SqlDataReader = cmdBuscarJornada.ExecuteReader
-                If Not drTarea.HasRows Then
-                    Return "Error: La jornada tiene tareas"
-                ElseIf drTarea.HasRows Then
-                    Dim sql3 As String = "Delete from jornada where fecha = @fecha and dnialumno = @dnialumno"
-                    Dim cmdBorrarJornada As New SqlCommand(sql3, conexion)
+            Using conexion As New SqlConnection(cadenaConexion)
+                conexion.Open()
+                Using cmdBuscarJornada As New SqlCommand(sqlBuscarJornada, conexion)
+                    cmdBuscarJornada.Parameters.AddWithValue("@fecha", fecha)
+                    cmdBuscarJornada.Parameters.AddWithValue("@dnialumno", dniAlumno)
+                    Using drJornada As SqlDataReader = cmdBuscarJornada.ExecuteReader()
+                        If Not drJornada.HasRows Then
+                            Return "Error: La jornada no existe"
+                        End If
+                    End Using
+                End Using
+                Using cmdBuscarTarea As New SqlCommand(sqlBuscarTareas, conexion)
+                    cmdBuscarTarea.Parameters.AddWithValue("@fecha", fecha)
+                    cmdBuscarTarea.Parameters.AddWithValue("@dnialumno", dniAlumno)
+                    Using drTarea As SqlDataReader = cmdBuscarTarea.ExecuteReader()
+                        If drTarea.HasRows Then
+                            Return "Error: La jornada tiene tareas"
+                        End If
+                    End Using
+                End Using
+                Using cmdBorrarJornada As New SqlCommand(sqlBorrar, conexion)
                     cmdBorrarJornada.Parameters.AddWithValue("@fecha", fecha)
                     cmdBorrarJornada.Parameters.AddWithValue("@dnialumno", dniAlumno)
-                    Dim drBorrar As Integer = cmdBorrarJornada.ExecuteNonQuery
-                    If drBorrar = 0 Then
+                    Dim filasBorradas As Integer = cmdBorrarJornada.ExecuteNonQuery()
+                    If filasBorradas = 0 Then
                         Return "Error: No se ha podido borrar"
                     Else
                         Return "Se ha borrado la Jornada"
                     End If
-                End If
-            End If
+                End Using
+            End Using
         Catch ex As Exception
-            Return "Error: " & ex.StackTrace
-        Finally
-            conexion.Close()
+            Return "Error: " & ex.Message
         End Try
     End Function
 
@@ -478,35 +480,33 @@ Public Class GestionAplicacion
         End If
 
         Dim listaJornadas As New List(Of Jornada)
-        Dim sql As String = "SELECT COUNT(*) FROM CICLO WHERE DniAlumno = @DniAlumno;"
-        Dim sqlJornadasPorAlumnos As String = "SELECT Fecha, DniAlumno, HorasJornada, estado FROM ALUMNO WHERE DniAlumno = @DniAlumno;"
+        Dim sqlAlumnoExiste As String = "SELECT COUNT(*) FROM ALUMNO WHERE DNI = @DniAlumno;"
+        Dim sqlJornadasPorAlumno As String = "SELECT Fecha, DniAlumno, Horas, Estado FROM JORNADA WHERE DniAlumno = @DniAlumno ORDER BY Fecha DESC;"
 
         Try
             Using conexion As New SqlConnection(cadenaConexion)
                 conexion.Open()
 
-                Using commandCycleCheck As New SqlCommand(sql, conexion)
-                    commandCycleCheck.Parameters.AddWithValue("@DniAlumno", DniAlumno)
-                    Dim cycleCount As Integer = commandCycleCheck.ExecuteScalar()
-                    If cycleCount = 0 Then
+                Using commandAlumnoCheck As New SqlCommand(sqlAlumnoExiste, conexion)
+                    commandAlumnoCheck.Parameters.AddWithValue("@DniAlumno", DniAlumno)
+                    Dim alumnoCount As Integer = commandAlumnoCheck.ExecuteScalar()
+                    If alumnoCount = 0 Then
                         Return Nothing
                     End If
                 End Using
 
-
-                Using cmd As New SqlCommand(sqlJornadasPorAlumnos, conexion)
+                Using cmd As New SqlCommand(sqlJornadasPorAlumno, conexion)
                     cmd.Parameters.AddWithValue("@DniAlumno", DniAlumno)
                     Using reader As SqlDataReader = cmd.ExecuteReader()
                         While reader.Read()
                             Dim j As New Jornada With {
                                 .Fecha = reader("Fecha"),
                                 .DniAlumno = reader("DniAlumno").ToString(),
-                                .HorasJornada = Convert.ToInt32(reader("HorasJornada")),
-                                .Estado = reader("estado").ToString()
+                                .HorasJornada = Convert.ToInt32(reader("Horas")),
+                                .Estado = reader("Estado").ToString()
                             }
                             listaJornadas.Add(j)
                         End While
-
                     End Using
                 End Using
 

@@ -1,4 +1,5 @@
 Imports System.Data.SqlClient
+Imports System.Runtime.InteropServices
 Imports Entidades
 
 Public Class GestionAplicacion
@@ -433,6 +434,13 @@ Public Class GestionAplicacion
     End Function
 
     Public Function BorrarJornada(fecha As Date, dniAlumno As String) As String
+        If fecha = Nothing Then
+            Return "Error: La fecha esta vacío"
+        End If
+        If dniAlumno Is Nothing Then
+            Return "Error: El dni esta vacio"
+        End If
+
         Dim sqlBuscarJornada As String = "Select fecha, dniAlumno from jornada where fecha = @fecha and dnialumno = @dnialumno;"
         Dim sqlBuscarTareas As String = "Select 1 from tarea where fechajornada = @fecha and dnialumno = @dnialumno;"
         Dim sqlBorrar As String = "Delete from jornada where fecha = @fecha and dnialumno = @dnialumno;"
@@ -518,6 +526,35 @@ Public Class GestionAplicacion
             Return Nothing
         End Try
 
+    End Function
+
+    Public Function JornadaExiste(fecha As Date, dni As String) As Boolean
+        If dni Is Nothing Then
+            Return False
+        End If
+        If fecha = Nothing Then
+            Return Nothing
+        End If
+        Dim conexion As New SqlConnection(cadenaConexion)
+        Dim sql As String = "Select fecha, dnialumno from jornada where fecha = @fecha and dnialumno = @dni;"
+        Try
+            conexion.Open()
+            Dim cmdJornada As New SqlCommand(sql, conexion)
+            cmdJornada.Parameters.AddWithValue("@fecha", fecha)
+            cmdJornada.Parameters.AddWithValue("@dnialumno", dni)
+            Dim drExisteJornada As SqlDataReader = cmdJornada.ExecuteReader
+            If Not drExisteJornada.HasRows Then
+                Return False
+            Else
+                Return True
+            End If
+
+        Catch ex As Exception
+            Return False
+        Finally
+            conexion.Close()
+        End Try
+        Return False
     End Function
 
 End Class

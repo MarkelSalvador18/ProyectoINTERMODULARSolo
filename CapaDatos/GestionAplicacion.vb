@@ -46,7 +46,7 @@ Public Class GestionAplicacion
                     command.Parameters.AddWithValue("@CodigoCiclo", alumno.CodigoCiclo)
                     Dim affectedRows As Integer = command.ExecuteNonQuery
                     If affectedRows = 0 Then
-                        Return "No se ha podido añadir al alumno"
+                        Return "No se ha podido añadir al alumni"
                     Else
                         Return "Se ha añadido al alumno"
                     End If

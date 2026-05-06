@@ -70,7 +70,7 @@ Public Class GestionAplicacion
                         End If
                         reader.Read()
                         ' FIXME: nombre y email intercambiados en el constructor — los datos se asignan incorrectamente
-                        Dim alumno As Alumno = New Alumno(reader("dni"), reader("nombre"), reader("telefono"), reader("email"), reader("apellido1"), reader("codigociclo"))
+                        Dim alumno As Alumno = New Alumno(reader("dni"), reader("email"), reader("telefono"), reader("nombre"), reader("apellido1"), reader("codigociclo"))
                         Return alumno
                     End Using
                 End Using
@@ -285,7 +285,7 @@ Public Class GestionAplicacion
         Catch ex As Exception
             ' Silent catch preserved - no-op by design
         End Try
-        ' FIXME: falta Return listaModulos — el método siempre devuelve Nothing
+        Return listaModulos
     End Function
 
     Public Function insertarTareaAlumno(tarea As Tarea) As String
@@ -382,7 +382,7 @@ Public Class GestionAplicacion
             Return "Error: El teléfono debe empezar por un número"
         End If
 
-        If telefono(0) <> "6"c AndAlso telefono(0) <> "7"c Then
+        If telefono(0) <> "6" AndAlso telefono(0) <> "7" Then
             Return "Error: El teléfono debe empezar por 6 o 7"
         End If
 
@@ -391,6 +391,49 @@ Public Class GestionAplicacion
         End If
 
         Return "Teléfono válido"
+    End Function
+
+    Public Function ModificarJornada(jor As Jornada) As String
+        Dim sqlExists As String = "SELECT COUNT(*) FROM Jornada WHERE fecha = @fecha AND dniAlumno = @dniAlumno;"
+        Dim sqlUpdate As String = "UPDATE Jornada SET Horas = @Horas, Estado = @Estado WHERE fecha = @fecha AND dniAlumno = @dniAlumno;"
+
+        If jor.HorasJornada < 0 OrElse jor.HorasJornada > 8 Then
+            Return "Error: Las horas deben estar entre 0 y 8"
+        End If
+
+        Dim estadosValidos As String() = {"PENDIENTE", "REALIZADA", "CANCELADA"}
+        If Not estadosValidos.Contains(jor.Estado.ToUpper()) Then
+            Return "Error: El estado debe ser PENDIENTE, REALIZADA o CANCELADA"
+        End If
+
+        Try
+            Using conexion As New SqlConnection(cadenaConexion)
+                conexion.Open()
+                Using commandExists As New SqlCommand(sqlExists, conexion)
+                    commandExists.Parameters.AddWithValue("@fecha", jor.Fecha)
+                    commandExists.Parameters.AddWithValue("@dniAlumno", jor.DniAlumno)
+                    Dim exists As Integer = commandExists.ExecuteScalar()
+                    If exists = 0 Then
+                        Return "Error: La jornada no existe"
+                    End If
+                End Using
+
+                Using commandUpdate As New SqlCommand(sqlUpdate, conexion)
+                    commandUpdate.Parameters.AddWithValue("@fecha", jor.Fecha)
+                    commandUpdate.Parameters.AddWithValue("@dniAlumno", jor.DniAlumno)
+                    commandUpdate.Parameters.AddWithValue("@Horas", jor.HorasJornada)
+                    commandUpdate.Parameters.AddWithValue("@Estado", jor.Estado.ToUpper())
+                    Dim affectedRows As Integer = commandUpdate.ExecuteNonQuery()
+                    If affectedRows = 0 Then
+                        Return "Error: No se ha podido modificar la jornada"
+                    Else
+                        Return "Jornada modificada correctamente"
+                    End If
+                End Using
+            End Using
+        Catch ex As Exception
+            Return "Error: " & ex.Message
+        End Try
     End Function
 
 End Class

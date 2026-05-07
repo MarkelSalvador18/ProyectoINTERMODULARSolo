@@ -537,7 +537,7 @@ Public Class GestionAplicacion
             Return listaTareas
         End If
 
-        Dim sql As String = "SELECT CodigoTarea, FechaJornada, DescripcionTarea, HorasTarea, DniAlumno " &
+        Dim sql As String = "SELECT CodigoTarea, FechaJornada, Descripcion, Horas, DniAlumno " &
                             "FROM TAREA " &
                             "WHERE DniAlumno = @dniAlumno AND FechaJornada BETWEEN @fechaInicio AND @fechaFin " &
                             "ORDER BY FechaJornada ASC, CodigoTarea ASC;"
@@ -556,8 +556,8 @@ Public Class GestionAplicacion
                             Dim t As New Tarea With {
                                 .CodigoTarea = reader("CodigoTarea").ToString(),
                                 .FechaJornada = Convert.ToDateTime(reader("FechaJornada")),
-                                .DescripcionTarea = reader("DescripcionTarea").ToString(),
-                                .HorasTarea = Convert.ToInt32(reader("HorasTarea")),
+                                .DescripcionTarea = reader("Descripcion").ToString(),
+                                .HorasTarea = Convert.ToInt32(reader("Horas")),
                                 .DniAlumno = reader("DniAlumno").ToString()
                             }
 
@@ -586,7 +586,7 @@ Public Class GestionAplicacion
             Return listaTareas
         End If
 
-        Dim sql As String = "SELECT CodigoTarea, FechaJornada, DescripcionTarea, HorasTarea, DniAlumno " &
+        Dim sql As String = "SELECT CodigoTarea, FechaJornada, Descripcion, Horas, DniAlumno " &
                             "FROM TAREA " &
                             "WHERE FechaJornada = @fecha AND DniAlumno = @dni " &
                             "ORDER BY CodigoTarea ASC;"
@@ -604,8 +604,8 @@ Public Class GestionAplicacion
                             Dim t As New Tarea With {
                                 .CodigoTarea = reader("CodigoTarea").ToString(),
                                 .FechaJornada = Convert.ToDateTime(reader("FechaJornada")),
-                                .DescripcionTarea = reader("DescripcionTarea").ToString(),
-                                .HorasTarea = Convert.ToInt32(reader("HorasTarea")),
+                                .DescripcionTarea = reader("Descripcion").ToString(),
+                                .HorasTarea = Convert.ToInt32(reader("Horas")),
                                 .DniAlumno = reader("DniAlumno").ToString()
                             }
 
@@ -640,7 +640,7 @@ Public Class GestionAplicacion
         End If
 
         Dim sqlExiste As String = "SELECT COUNT(*) FROM TAREA WHERE CodigoTarea = @codigo;"
-        Dim sqlUpdate As String = "UPDATE TAREA SET DescripcionTarea = @descripcion, HorasTarea = @horas WHERE CodigoTarea = @codigo;"
+        Dim sqlUpdate As String = "UPDATE TAREA SET Descripcion = @descripcion, Horas = @horas WHERE CodigoTarea = @codigo;"
 
         Try
             Using conexion As New SqlConnection(cadenaConexion)
@@ -773,15 +773,6 @@ Public Class GestionAplicacion
 
     End Function
 
-
-
-
-
-
-
-
-
-
     Public Function JornadaExiste(fecha As Date, dni As String) As Boolean
         If dni Is Nothing Then
             Return False
@@ -795,7 +786,7 @@ Public Class GestionAplicacion
             conexion.Open()
             Dim cmdJornada As New SqlCommand(sql, conexion)
             cmdJornada.Parameters.AddWithValue("@fecha", fecha)
-            cmdJornada.Parameters.AddWithValue("@dnialumno", dni)
+            cmdJornada.Parameters.AddWithValue("@dni", dni)
             Dim drExisteJornada As SqlDataReader = cmdJornada.ExecuteReader
             If Not drExisteJornada.HasRows Then
                 Return False
@@ -809,6 +800,28 @@ Public Class GestionAplicacion
             conexion.Close()
         End Try
         Return False
+    End Function
+
+    Public Function ObtenerJornadaSemana(dniAlumno As String, fechaInicio As Date, fechaFin As Date) As List(Of Jornada)
+        Dim listaJornada As New List(Of Jornada)
+        Dim conexion As New SqlConnection(cadenaConexion)
+        Dim sql As String = "Select * from jornada where dniAlumno = @dniAlumno and fecha BETWEEN @fechaInicio and @fechaFin
+                            order by fecha asc;"
+        Try
+            conexion.Open()
+            Dim cmdJornadaSemanas As New SqlCommand(sql, conexion)
+            cmdJornadaSemanas.Parameters.AddWithValue("@dnialumno", dniAlumno)
+            cmdJornadaSemanas.Parameters.AddWithValue("@fechainicio", fechaInicio)
+            cmdJornadaSemanas.Parameters.AddWithValue("@fechafin", fechaFin)
+            Dim drJornada As SqlDataReader = cmdJornadaSemanas.ExecuteReader
+            If Not drJornada.HasRows Then
+                Return listaJornada
+            Else
+                Return listaJornada
+            End If
+        Catch ex As Exception
+            Return listaJornada
+        End Try
     End Function
 
 

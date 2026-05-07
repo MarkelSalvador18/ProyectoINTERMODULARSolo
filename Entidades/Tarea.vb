@@ -7,7 +7,7 @@
     Public Property DescripcionTarea As String
     Public Property HorasTarea As Integer
     Public Property DniAlumno As String
-    Public Sub New(codigoTarea As String, fechaJornada As Date, descripcionTarea As String, horasTarea As Integer, dniAlumno As String)
+    Public Sub New(codigoTarea As String, dniAlumno As String, fechaJornada As Date, descripcionTarea As String, horasTarea As Integer)
         Me.CodigoTarea = codigoTarea
         Me.FechaJornada = fechaJornada
         Me.DescripcionTarea = descripcionTarea

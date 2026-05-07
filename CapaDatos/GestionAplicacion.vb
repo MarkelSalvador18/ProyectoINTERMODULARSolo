@@ -528,6 +528,260 @@ Public Class GestionAplicacion
 
     End Function
 
+
+    Public Function ObtenerTareasSemanales(dniAlumno As String, fechaInicio As Date, fechaFin As Date) As List(Of Tarea)
+
+        Dim listaTareas As New List(Of Tarea)
+
+        If dniAlumno Is Nothing Then
+            Return listaTareas
+        End If
+
+        Dim sql As String = "SELECT CodigoTarea, FechaJornada, DescripcionTarea, HorasTarea, DniAlumno " &
+                            "FROM TAREA " &
+                            "WHERE DniAlumno = @dniAlumno AND FechaJornada BETWEEN @fechaInicio AND @fechaFin " &
+                            "ORDER BY FechaJornada ASC, CodigoTarea ASC;"
+
+        Try
+            Using conexion As New SqlConnection(cadenaConexion)
+                conexion.Open()
+
+                Using cmd As New SqlCommand(sql, conexion)
+                    cmd.Parameters.AddWithValue("@dniAlumno", dniAlumno)
+                    cmd.Parameters.AddWithValue("@fechaInicio", fechaInicio)
+                    cmd.Parameters.AddWithValue("@fechaFin", fechaFin)
+
+                    Using reader As SqlDataReader = cmd.ExecuteReader()
+                        While reader.Read()
+                            Dim t As New Tarea With {
+                                .CodigoTarea = reader("CodigoTarea").ToString(),
+                                .FechaJornada = Convert.ToDateTime(reader("FechaJornada")),
+                                .DescripcionTarea = reader("DescripcionTarea").ToString(),
+                                .HorasTarea = Convert.ToInt32(reader("HorasTarea")),
+                                .DniAlumno = reader("DniAlumno").ToString()
+                            }
+
+                            listaTareas.Add(t)
+                        End While
+                    End Using
+                End Using
+
+            End Using
+
+            Return listaTareas
+
+        Catch ex As Exception
+            Return New List(Of Tarea)
+        End Try
+
+    End Function
+
+
+
+    Public Function ObtenerTareasDeJornada(fecha As Date, dni As String) As List(Of Tarea)
+
+        Dim listaTareas As New List(Of Tarea)
+
+        If dni Is Nothing Then
+            Return listaTareas
+        End If
+
+        Dim sql As String = "SELECT CodigoTarea, FechaJornada, DescripcionTarea, HorasTarea, DniAlumno " &
+                            "FROM TAREA " &
+                            "WHERE FechaJornada = @fecha AND DniAlumno = @dni " &
+                            "ORDER BY CodigoTarea ASC;"
+
+        Try
+            Using conexion As New SqlConnection(cadenaConexion)
+                conexion.Open()
+
+                Using cmd As New SqlCommand(sql, conexion)
+                    cmd.Parameters.AddWithValue("@fecha", fecha)
+                    cmd.Parameters.AddWithValue("@dni", dni)
+
+                    Using reader As SqlDataReader = cmd.ExecuteReader()
+                        While reader.Read()
+                            Dim t As New Tarea With {
+                                .CodigoTarea = reader("CodigoTarea").ToString(),
+                                .FechaJornada = Convert.ToDateTime(reader("FechaJornada")),
+                                .DescripcionTarea = reader("DescripcionTarea").ToString(),
+                                .HorasTarea = Convert.ToInt32(reader("HorasTarea")),
+                                .DniAlumno = reader("DniAlumno").ToString()
+                            }
+
+                            listaTareas.Add(t)
+                        End While
+                    End Using
+                End Using
+
+            End Using
+
+            Return listaTareas
+
+        Catch ex As Exception
+            Return New List(Of Tarea)
+        End Try
+
+    End Function
+
+
+    Public Function ModificarTarea(tarea As Tarea) As String
+
+        If tarea Is Nothing Then
+            Return "Error: La tarea no puede ser nula."
+        End If
+
+        If String.IsNullOrWhiteSpace(tarea.DescripcionTarea) Then
+            Return "Error: La descripción no puede estar vacía."
+        End If
+
+        If tarea.HorasTarea < 0 OrElse tarea.HorasTarea > 8 Then
+            Return "Error: Las horas deben estar entre 0 y 8."
+        End If
+
+        Dim sqlExiste As String = "SELECT COUNT(*) FROM TAREA WHERE CodigoTarea = @codigo;"
+        Dim sqlUpdate As String = "UPDATE TAREA SET DescripcionTarea = @descripcion, HorasTarea = @horas WHERE CodigoTarea = @codigo;"
+
+        Try
+            Using conexion As New SqlConnection(cadenaConexion)
+                conexion.Open()
+
+                ' Comprobar si existe la tarea
+                Using cmdExiste As New SqlCommand(sqlExiste, conexion)
+                    cmdExiste.Parameters.AddWithValue("@codigo", tarea.CodigoTarea)
+                    Dim count As Integer = Convert.ToInt32(cmdExiste.ExecuteScalar())
+
+                    If count = 0 Then
+                        Return "Error: La tarea no existe."
+                    End If
+                End Using
+
+                ' Actualizar solo los campos permitidos
+                Using cmdUpdate As New SqlCommand(sqlUpdate, conexion)
+                    cmdUpdate.Parameters.AddWithValue("@descripcion", tarea.DescripcionTarea)
+                    cmdUpdate.Parameters.AddWithValue("@horas", tarea.HorasTarea)
+                    cmdUpdate.Parameters.AddWithValue("@codigo", tarea.CodigoTarea)
+
+                    Dim filasAfectadas As Integer = cmdUpdate.ExecuteNonQuery()
+
+                    If filasAfectadas > 0 Then
+                        Return "Tarea modificada correctamente."
+                    Else
+                        Return "Error: No se pudo modificar la tarea."
+                    End If
+                End Using
+
+            End Using
+
+        Catch ex As Exception
+            Return "Error: " & ex.Message
+        End Try
+
+    End Function
+
+
+
+
+    Public Function BorrarTarea(codigoTarea As String, fecha As Date, dni As String) As String
+
+        If String.IsNullOrWhiteSpace(codigoTarea) OrElse String.IsNullOrWhiteSpace(dni) Then
+            Return "Error: Datos insuficientes para borrar la tarea."
+        End If
+
+        Dim sqlExiste As String = "SELECT COUNT(*) FROM TAREA WHERE CodigoTarea = @codigo AND FechaJornada = @fecha AND DniAlumno = @dni;"
+        Dim sqlDeleteRAs As String = "DELETE FROM RA_TAREA WHERE CodigoTarea = @codigo;"
+        Dim sqlDeleteTarea As String = "DELETE FROM TAREA WHERE CodigoTarea = @codigo AND FechaJornada = @fecha AND DniAlumno = @dni;"
+
+        Try
+            Using conexion As New SqlConnection(cadenaConexion)
+                conexion.Open()
+
+                ' Comprobar si existe la tarea
+                Using cmdExiste As New SqlCommand(sqlExiste, conexion)
+                    cmdExiste.Parameters.AddWithValue("@codigo", codigoTarea)
+                    cmdExiste.Parameters.AddWithValue("@fecha", fecha)
+                    cmdExiste.Parameters.AddWithValue("@dni", dni)
+
+                    Dim count As Integer = Convert.ToInt32(cmdExiste.ExecuteScalar())
+                    If count = 0 Then
+                        Return "Error: La tarea no existe."
+                    End If
+                End Using
+
+                ' Borrar relaciones en RA_TAREA (si existen)
+                Using cmdDeleteRAs As New SqlCommand(sqlDeleteRAs, conexion)
+                    cmdDeleteRAs.Parameters.AddWithValue("@codigo", codigoTarea)
+                    cmdDeleteRAs.ExecuteNonQuery()
+                End Using
+
+                ' Borrar la tarea
+                Using cmdDeleteTarea As New SqlCommand(sqlDeleteTarea, conexion)
+                    cmdDeleteTarea.Parameters.AddWithValue("@codigo", codigoTarea)
+                    cmdDeleteTarea.Parameters.AddWithValue("@fecha", fecha)
+                    cmdDeleteTarea.Parameters.AddWithValue("@dni", dni)
+
+                    Dim filas As Integer = cmdDeleteTarea.ExecuteNonQuery()
+
+                    If filas > 0 Then
+                        Return "Tarea eliminada correctamente."
+                    Else
+                        Return "Error: No se pudo eliminar la tarea."
+                    End If
+                End Using
+
+            End Using
+
+        Catch ex As Exception
+            Return "Error: " & ex.Message
+        End Try
+
+    End Function
+
+
+
+
+    Public Function GenerarCodigoTarea(fecha As Date, dni As String) As Integer
+
+        Dim siguienteCodigo As Integer = 1
+
+        If String.IsNullOrWhiteSpace(dni) Then
+            Return siguienteCodigo
+        End If
+
+        Dim sql As String = "SELECT ISNULL(MAX(CodigoTarea), 0) FROM TAREA " &
+                            "WHERE FechaJornada = @fecha AND DniAlumno = @dni;"
+
+        Try
+            Using conexion As New SqlConnection(cadenaConexion)
+                conexion.Open()
+
+                Using cmd As New SqlCommand(sql, conexion)
+                    cmd.Parameters.AddWithValue("@fecha", fecha)
+                    cmd.Parameters.AddWithValue("@dni", dni)
+
+                    Dim maxCodigo As Integer = Convert.ToInt32(cmd.ExecuteScalar())
+                    siguienteCodigo = maxCodigo + 1
+                End Using
+
+            End Using
+
+            Return siguienteCodigo
+
+        Catch ex As Exception
+            Return 1
+        End Try
+
+    End Function
+
+
+
+
+
+
+
+
+
+
     Public Function JornadaExiste(fecha As Date, dni As String) As Boolean
         If dni Is Nothing Then
             Return False
@@ -556,5 +810,6 @@ Public Class GestionAplicacion
         End Try
         Return False
     End Function
+
 
 End Class

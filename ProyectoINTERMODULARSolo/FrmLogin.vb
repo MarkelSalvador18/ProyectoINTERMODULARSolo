@@ -46,6 +46,14 @@ Public Class FrmLogin
         'miGestor.insertarJornadaAlumno(jornada) MEJORAR
         '  MessageBox.Show(miGestor.totalHorasAlumno("12345678A"))
         ' MessageBox.Show(miGestor.insertarTareaAlumno(tarea))
+        'miGestor.ObtenerTareasSemanales("12345678A", #2024/10/1#, #2024/10/1#)
+        'miGestor.ObtenerTareasDeJornada(#2024/10/1#, "12345678A")
+        'Dim tarea As Tarea = New Tarea(1, "12345678A", #2024/10/1#, "Tarea de programación", 3)
+        'miGestor.ModificarTarea(tarea)
+        'miGestor.BorrarTarea(1, #2024/10/1#, "12345678A")
+        'miGestor.GenerarCodigoTarea(#2024/10/1#, "12345678A")
+        'miGestor.JornadaExiste(#2024/10/1#, "12345678A")
+        miGestor.ObtenerJornadaSemana("12345678A", #2024/10/1#, #2024/10/1#)
     End Sub
 End Class
 

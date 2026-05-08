@@ -415,6 +415,7 @@ Public Class GestionAplicacion
                         Return "Error: La jornada no existe"
                     End If
                 End Using
+
                 Using commandUpdate As New SqlCommand(sqlUpdate, conexion)
                     commandUpdate.Parameters.AddWithValue("@fecha", jor.Fecha)
                     commandUpdate.Parameters.AddWithValue("@dniAlumno", jor.DniAlumno)
@@ -528,8 +529,6 @@ Public Class GestionAplicacion
 
     End Function
 
-<<<<<<< HEAD
-
     Public Function ObtenerTareasSemanales(dniAlumno As String, fechaInicio As Date, fechaFin As Date) As List(Of Tarea)
 
         Dim listaTareas As New List(Of Tarea)
@@ -572,7 +571,7 @@ Public Class GestionAplicacion
             Return listaTareas
 
         Catch ex As Exception
-            Return New List(Of Tarea)
+            Return Nothing
         End Try
 
     End Function
@@ -769,7 +768,7 @@ Public Class GestionAplicacion
             Return siguienteCodigo
 
         Catch ex As Exception
-            Return 1
+            Return Nothing
         End Try
 
     End Function
@@ -780,9 +779,6 @@ Public Class GestionAplicacion
 
 
 
-
-
-=======
     Public Function JornadaExiste(fecha As Date, dni As String) As Boolean
         If dni Is Nothing Then
             Return False
@@ -812,5 +808,9 @@ Public Class GestionAplicacion
         Return False
     End Function
 
->>>>>>> master
+
+
+
+
+
 End Class

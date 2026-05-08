@@ -1,4 +1,5 @@
 Imports System.Data.SqlClient
+Imports System.Globalization
 Imports System.Runtime.InteropServices
 Imports Entidades
 
@@ -823,6 +824,76 @@ Public Class GestionAplicacion
             Return listaJornada
         End Try
     End Function
+
+    Public Function InsertarRaTarea(numeroRa As Integer, codModulo As Integer, codCiclo As Integer, codTarea As Integer, dniAlumno As String, fechaJornada As Date) As String
+        Dim conexion As New SqlConnection(cadenaConexion)
+        Try
+            conexion.Open()
+
+            Dim sqlTarea As String = "select count(*) from tarea where codigotarea = @codTarea AND dnialumno = @dnialumno and fechajornada = @fechajornada"
+
+            Dim cmdTarea As New SqlCommand(sqlTarea, conexion)
+            cmdTarea.Parameters.AddWithValue("@codigoTarea", codTarea)
+            cmdTarea.Parameters.AddWithValue("@dnialumno", dniAlumno)
+            cmdTarea.Parameters.AddWithValue("@fechajornada", fechaJornada)
+            Dim nFilasTarea As Integer = cmdTarea.ExecuteScalar
+            If nFilasTarea = 0 Then
+                Return "Error: la tarea no existe"
+            End If
+            Dim sqlRa As String = "select count(*) from ra where numero = @numeroRa and codigomoudulo = @codmodulo and codigociclo = @codciclo"
+
+            Dim cmdRa As New SqlCommand(sqlRa, conexion)
+            cmdRa.Parameters.AddWithValue("@numeroRa", numeroRa)
+            cmdRa.Parameters.AddWithValue("@codmodulo", codModulo)
+            cmdRa.Parameters.AddWithValue("@codigociclo", codCiclo)
+
+            Dim nFilasRa As Integer = cmdRa.ExecuteScalar
+            If nFilasRa = 0 Then
+                Return "Error: no existe la RA"
+            End If
+
+            Dim sqlExiste As String = "select count(*) from ra_tarea where codigotarea = @codTarea and fechajornada = @fechajornada and dnialumno = @dnialumno and numerora = @numeroRa and codigomodulo = @codmodulo  and codigociclo = @codciclo"
+
+            Dim cmdExiste As New SqlCommand(sqlExiste, conexion)
+            cmdExiste.Parameters.AddWithValue("@codTarea", codTarea)
+            cmdExiste.Parameters.AddWithValue("@fechajornada", fechaJornada)
+            cmdExiste.Parameters.AddWithValue("@dnialumno", dniAlumno)
+            cmdExiste.Parameters.AddWithValue("@numeroRa", numeroRa)
+            cmdExiste.Parameters.AddWithValue("@codmodulo", codModulo)
+            cmdExiste.Parameters.AddWithValue("@codciclo", codCiclo)
+
+            If CInt(cmdExiste.ExecuteScalar()) > 0 Then
+                Return "Error: El RA ya está vinculado a esa tarea."
+            End If
+
+
+            Dim sqlInsert As String =
+            "INSERT INTO RA_TAREA
+             (CODIGOTAREA, NUMERORA, FECHAJORNADA, CODIGOMODULO, DNIALUMNO, CODIGOCICLO)
+             VALUES (@codigoTarea, @numeroRa, @fechajornada, @codmodulo, @dnialumno, @codigociclo)"
+
+            Dim cmdInsert As New SqlCommand(sqlInsert, conexion)
+            cmdInsert.Parameters.AddWithValue("@codigoTarea", codTarea)
+            cmdInsert.Parameters.AddWithValue("@numeroRa", numeroRa)
+            cmdInsert.Parameters.AddWithValue("@fechajornada", fechaJornada)
+            cmdInsert.Parameters.AddWithValue("@codmodulo", codModulo)
+            cmdInsert.Parameters.AddWithValue("@dnialumno", dniAlumno)
+            cmdInsert.Parameters.AddWithValue("@codigociclo", codCiclo)
+
+            cmdInsert.ExecuteNonQuery()
+
+            Return "RA vinculado correctamente a la tarea."
+
+        Catch ex As Exception
+            Return "Error: " & ex.Message
+
+        Finally
+            conexion.Close()
+        End Try
+
+    End Function
+
+
 
 
 End Class

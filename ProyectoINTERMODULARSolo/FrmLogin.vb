@@ -53,7 +53,7 @@ Public Class FrmLogin
         'miGestor.BorrarTarea(1, #2024/10/1#, "12345678A")
         'miGestor.GenerarCodigoTarea(#2024/10/1#, "12345678A")
         'miGestor.JornadaExiste(#2024/10/1#, "12345678A")
-        miGestor.ObtenerJornadaSemana("12345678A", #2024/10/1#, #2024/10/1#)
+        'miGestor.ObtenerJornadaSemana("12345678A", #2024/10/1#, #2024/10/1#)
     End Sub
 End Class
 

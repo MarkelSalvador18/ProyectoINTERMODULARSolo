@@ -240,6 +240,32 @@ Public Class GestionAplicacion
         Return "Las horas totales del alumno con el DNI: " & alumno.Dni & " son " & horasTotales
     End Function
 
+    Public Function TotalDiasCotizadosAlumno(dni As String) As String
+        Dim alumno As Alumno = AlumnoPorDni(dni)
+        If alumno Is Nothing Then
+            Return "No existe ningún alumno con ese DNI"
+        End If
+        Dim fechas As New List(Of String)
+        Dim sql As String = "SELECT FECHA FROM JORNADA WHERE DNIALUMNO = @dni ORDER BY FECHA;"
+        Try
+            Using conexion As New SqlConnection(cadenaConexion)
+                conexion.Open()
+                Using command As New SqlCommand(sql, conexion)
+                    command.Parameters.AddWithValue("@dni", alumno.Dni)
+                    Using reader As SqlDataReader = command.ExecuteReader()
+                        While reader.Read()
+                            Dim fecha As Date = Convert.ToDateTime(reader("FECHA"))
+                            fechas.Add(fecha.ToString("yyyy-MM-dd"))
+                        End While
+                    End Using
+                End Using
+            End Using
+        Catch ex As Exception
+            Return "Error: " & ex.Message
+        End Try
+        Return "Total " & fechas.Count & " días: " & String.Join(", ", fechas)
+    End Function
+
     Public Function ComprobarDni(dni As String) As String
         If dni.Length <> 9 Then
             Return "Error: Longitud incorrecta"
@@ -289,10 +315,46 @@ Public Class GestionAplicacion
         Return listaModulos
     End Function
 
+    Public Function ValidarHorasTareasJornada(dni As String, fecha As Date) As String
+        Dim sqlHorasJornada As String = "SELECT HORAS FROM JORNADA WHERE DNIALUMNO = @dni AND FECHA = @fecha;"
+        Dim sqlSumaTareas As String = "SELECT ISNULL(SUM(HORAS), 0) FROM TAREA WHERE DNIALUMNO = @dni AND FECHAJORNADA = @fecha;"
+        Try
+            Using conexion As New SqlConnection(cadenaConexion)
+                conexion.Open()
+                Dim horasJornada As Integer
+                Using cmd As New SqlCommand(sqlHorasJornada, conexion)
+                    cmd.Parameters.AddWithValue("@dni", dni)
+                    cmd.Parameters.AddWithValue("@fecha", fecha)
+                    Dim resultado As Object = cmd.ExecuteScalar()
+                    If resultado Is Nothing OrElse IsDBNull(resultado) Then
+                        Return "Error: No existe la jornada para ese alumno en esa fecha"
+                    End If
+                    horasJornada = Convert.ToInt32(resultado)
+                End Using
+                Dim sumaHorasTareas As Integer
+                Using cmd As New SqlCommand(sqlSumaTareas, conexion)
+                    cmd.Parameters.AddWithValue("@dni", dni)
+                    cmd.Parameters.AddWithValue("@fecha", fecha)
+                    sumaHorasTareas = Convert.ToInt32(cmd.ExecuteScalar())
+                End Using
+                If sumaHorasTareas >= horasJornada Then
+                    Return "Error: Las horas de las tareas superan o igualan las horas registradas en la jornada"
+                End If
+            End Using
+        Catch ex As Exception
+            Return "Error: " & ex.Message
+        End Try
+        Return "Horas válidas"
+    End Function
+
     Public Function insertarTareaAlumno(tarea As Tarea) As String
         Dim mensaje As String = comprobarSiTareaExisteEnAlumno(tarea.CodigoTarea, tarea.FechaJornada, tarea.DniAlumno)
         If mensaje.Contains("Error") Then
             Return mensaje
+        End If
+        Dim validacionHoras As String = ValidarHorasTareasJornada(tarea.DniAlumno, tarea.FechaJornada)
+        If validacionHoras.Contains("Error") Then
+            Return validacionHoras
         End If
         Dim sql As String = "Insert into tarea(codigotarea, dnialumno, fechajornada, descripcion, horas) values (@codigotarea, @dnialumno, @fechajornada, @descripcion, @horas);"
         Try
@@ -824,5 +886,44 @@ Public Class GestionAplicacion
         End Try
     End Function
 
+
+    Public Function HorasPorGrupo(codigoCiclo As String) As Dictionary(Of String, Integer)
+        If codigoCiclo Is Nothing Then
+            Return Nothing
+        End If
+        Dim sqlCicloExiste As String = "SELECT COUNT(*) FROM CICLO WHERE CODIGOCICLO = @codigoCiclo;"
+        Dim sqlHorasPorAlumno As String =
+            "SELECT A.DNI, ISNULL(SUM(J.HORAS), 0) AS TotalHoras " &
+            "FROM ALUMNO A " &
+            "LEFT JOIN JORNADA J ON A.DNI = J.DNIALUMNO " &
+            "WHERE A.CODIGOCICLO = @codigoCiclo " &
+            "GROUP BY A.DNI;"
+        Try
+            Using conexion As New SqlConnection(cadenaConexion)
+                conexion.Open()
+                Using cmdCiclo As New SqlCommand(sqlCicloExiste, conexion)
+                    cmdCiclo.Parameters.AddWithValue("@codigoCiclo", codigoCiclo)
+                    Dim cicloCount As Integer = Convert.ToInt32(cmdCiclo.ExecuteScalar())
+                    If cicloCount = 0 Then
+                        Return Nothing
+                    End If
+                End Using
+                Dim resultado As New Dictionary(Of String, Integer)
+                Using cmd As New SqlCommand(sqlHorasPorAlumno, conexion)
+                    cmd.Parameters.AddWithValue("@codigoCiclo", codigoCiclo)
+                    Using reader As SqlDataReader = cmd.ExecuteReader()
+                        While reader.Read()
+                            Dim dni As String = reader("DNI").ToString()
+                            Dim horas As Integer = Convert.ToInt32(reader("TotalHoras"))
+                            resultado.Add(dni, horas)
+                        End While
+                    End Using
+                End Using
+                Return resultado
+            End Using
+        Catch ex As Exception
+            Return Nothing
+        End Try
+    End Function
 
 End Class

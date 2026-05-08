@@ -1,7 +1,19 @@
 ﻿Imports System.Data.SqlClient
+Imports System.Web
 
 Public NotInheritable Class MiServidor
 
+    Private cadConexion As String
+
+
+    Public Shared Function CadenaConexion(bd As String, ByRef errorConectar As String) As String
+        Dim serv As String = Servidor(errorConectar)
+        Dim cad = $"Data Source = {serv}; Initial Catalog = {bd} Integrated Security = SSPI; MultipleActiveResultSets=true"
+        If Not serv.StartsWith(".") Then
+            cad = $"Data Source={serv};Persist Security Info=False;User ID=root;Password=root;Pooling=False;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=True;Application Name='SQL Server Management Studio' Initial Catalog = {bd}"
+        End If
+        Return cad
+    End Function
     ''' <summary>
     ''' Devuelve el nombre del servidor del ordenador en que se está ejecutando el proyecto
     ''' </summary>
@@ -11,14 +23,17 @@ Public NotInheritable Class MiServidor
     ''' <returns>Devuelve el nombre del servidor</returns>
     Public Shared Function Servidor(ByRef errorServidor As String) As String ' La variable errorServidor se pasa por referencia para que pueda ser modificada dentro de la función y reflejar el resultado al exterior
         errorServidor = ""
-        Dim servidores() As String = {".", ".\SQLEXPRESS"} ' , "(local)", "(local)\SQLEXPRESS", "localhost", "localhost\SQLEXPRESS"
+        Dim servidores() As String = {".", ".\SQLEXPRESS", "192.168.56.101\SQLEXPRESS"} ' , "(local)", "(local)\SQLEXPRESS", "localhost", "localhost\SQLEXPRESS"
 
         For Each serv As String In servidores
             Try
                 Dim cadConexion As String = $"Data Source={serv};Initial Catalog=master;Integrated Security=True;MultipleActiveResultSets=True;Connect Timeout=2"
+                cadConexion = $"Data Source={serv};Persist Security Info=False;User ID=root;Password=root;Pooling=False;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=True;Application Name='SQL Server Management Studio' "
 
                 Using con As New SqlConnection(cadConexion)
                     con.Open()
+                    con.Close()
+                    errorServidor = ""
                     Return serv ' Ha podido conectar con SqlServer
                 End Using
 
@@ -29,6 +44,8 @@ Public NotInheritable Class MiServidor
 
         errorServidor = "No era ninguno???"
         Return ""
+
+
     End Function
 
 End Class
